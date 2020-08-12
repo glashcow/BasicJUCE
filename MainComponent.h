@@ -28,7 +28,8 @@ public:
 private:
     juce::Slider frequencySlider;
     juce::Slider volume;
-    double currentSampleRate = 0.0, currentAngle = 0.0, angleDelta = 0.0, currentFrequency, audioLevel = 0.0;
+    juce::Slider offSet;
+    double currentSampleRate = 0.0, currentAngle = 0.0, angleDelta = 0.0, currentFrequency, audioLevel = 0.0, freqOffset = 1.0;
     juce::String currentFrequencyString;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

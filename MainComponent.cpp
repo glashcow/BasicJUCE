@@ -6,7 +6,7 @@ MainComponent::MainComponent()
     // Make sure you set the size of the component after
     // you add any child components.
 
-    //Slider stuff
+    //Frequency stuff
     addAndMakeVisible(frequencySlider);
     frequencySlider.setRange(50.0, 20000.0);
     frequencySlider.setSkewFactorFromMidPoint(500.0); // [4]
@@ -18,12 +18,22 @@ MainComponent::MainComponent()
         }
     };
 
+    //Volume stuff
     addAndMakeVisible(volume);
     volume.setBounds(100, 50, 200, 200);
     volume.setRange(0.0, 1.0);
     volume.onValueChange = [this]
     {
         audioLevel = (double)volume.getValue();
+    };
+
+    //offsetStuff
+    addAndMakeVisible(offSet);
+    offSet.setBounds(200, 200, 200, 200);
+    offSet.setRange(1.0, 2.0);
+    offSet.onValueChange = [this]
+    {
+        freqOffset = (double)offSet.getValue();
     };
 
     setSize(400, 400);
@@ -58,10 +68,11 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
     for (auto sample = 0; sample < bufferToFill.numSamples; ++sample)
     {
-        auto currentSample = (float)std::sin(currentAngle);
+        auto currentSample1 = (float)std::sin(currentAngle);
+        auto currentSample2 = (float)std::sin(currentAngle * freqOffset);
         currentAngle += angleDelta;
-        leftBuffer[sample] = currentSample * level;
-        rightBuffer[sample] = currentSample * level;
+        leftBuffer[sample] = currentSample1 * level;
+        rightBuffer[sample] = currentSample2 * level;
     }
 }
 
