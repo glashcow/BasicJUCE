@@ -7,3 +7,5 @@
 -Deleted files, switch to wavetable, just sine thus far  
 
 -added squaretable
+
+-both waves can be switched between (naively)
