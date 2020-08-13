@@ -9,3 +9,5 @@
 -added squaretable
 
 -both waves can be switched between (naively)
+
+-broken triangle added, and labels for sliders
