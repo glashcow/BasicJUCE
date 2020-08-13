@@ -72,7 +72,8 @@ public:
         addAndMakeVisible(cpuUsageLabel);
         addAndMakeVisible(cpuUsageText);
 
-        createWavetable();
+        //createHarmonicSineWavetable();
+        createSquareWaveTable();
 
         setSize(400, 200);
         setAudioChannels(0, 2); 
@@ -96,7 +97,7 @@ public:
         cpuUsageText.setText(juce::String(cpu, 6) + " %", juce::dontSendNotification);
     }
 
-    void createWavetable()
+    void createHarmonicSineWavetable()
     {
         sineTable.setSize(1, (int)tableSize + 1);
         sineTable.clear();
@@ -124,9 +125,25 @@ public:
         samples[tableSize] = samples[0];
     }
 
+    void createSquareWaveTable()
+    {
+        squareTable.setSize(1, (int)tableSize + 1);
+        squareTable.clear();
+
+        auto* samples = squareTable.getWritePointer(0);
+
+        for (unsigned int i = 0; i < tableSize; ++i) {
+            if (i < tableSize / 2)
+                samples[i] = 1;
+            else
+                samples[i] = -1;
+        }
+        samples[tableSize] = samples[0];
+    }
+
     void prepareToPlay(int, double sampleRate) override
     {
-        auto* oscillator = new WavetableOscillator(sineTable);
+        auto* oscillator = new WavetableOscillator(squareTable);
         oscillators.add(oscillator);
         level = 0.25f;
     }
@@ -160,6 +177,7 @@ private:
     float level = 0.0f, oscFreq = 440.0;;
 
     juce::AudioSampleBuffer sineTable;
+    juce::AudioSampleBuffer squareTable;
     juce::OwnedArray<WavetableOscillator> oscillators;
     juce::Slider frequencySlider;
 
