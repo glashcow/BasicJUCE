@@ -57,7 +57,7 @@ class MainContentComponent : public juce::AudioAppComponent,
 public:
     MainContentComponent()
     {
-        //Frequency stuff
+        //Frequency shift stuff
         addAndMakeVisible(frequencySlider);
         frequencySlider.setRange(50.0, 20000.0);
         frequencySlider.setSkewFactorFromMidPoint(500.0); 
@@ -66,23 +66,40 @@ public:
         {
             oscFreq = frequencySlider.getValue();
         };
+        addAndMakeVisible(freqPicker);
+        freqPicker.setBounds(20, 70, 100, 100);
+        freqPicker.setText("Freuency Selection", juce::dontSendNotification);
 
-        //toggle 
+        //says toggle but its a slider between the osc's 
         addAndMakeVisible(sineToggle);
         sineToggle.setRange(0.0, 1.0);
         sineToggle.onValueChange = [this]
         {
-            sineToggle.getValue() < 0.5 ? sine = false : sine = true;
+            float value = sineToggle.getValue();
+            if (value <= 0.33) {
+                osc = 0;
+            }
+            else if (value <= 0.66) {
+                osc = 1;
+            }
+            else
+                osc = 2;
         };
         sineToggle.setBounds(20, 200, 200, 200);
+        addAndMakeVisible(wavePicker);
+        wavePicker.setBounds(20, 230, 100, 100);
+        wavePicker.setText("Wave Selection", juce::dontSendNotification);
 
+        //cpu usage levels
         cpuUsageLabel.setText("CPU Usage", juce::dontSendNotification);
         cpuUsageText.setJustificationType(juce::Justification::right);
         addAndMakeVisible(cpuUsageLabel);
         addAndMakeVisible(cpuUsageText);
-
-        createHarmonicSineWavetable();
+    
+        //create the wave tables
+        createPureSineWavetable();
         createSquareWaveTable();
+        createBrokenTriangleWaveTable();
 
         setSize(300, 400);
         setAudioChannels(0, 2); 
@@ -126,11 +143,30 @@ public:
             for (unsigned int i = 0; i < tableSize; ++i)
             {
                 auto sample = std::sin(currentAngle);
-                samples[i] += (float)sample * harmonicWeights[harmonic];                           // [3]
+                samples[i] += (float)sample * harmonicWeights[harmonic];                           
                 currentAngle += angleDelta;
             }
         }
 
+        samples[tableSize] = samples[0];
+    }
+
+    void createPureSineWavetable()
+    {
+        pureSineTable.setSize(1, (int)tableSize + 1);
+        pureSineTable.clear();
+
+        auto* samples = pureSineTable.getWritePointer(0);
+
+        auto angleDelta = juce::MathConstants<double>::twoPi / (double)(tableSize - 1); 
+        auto currentAngle = 0.0;
+
+        for (unsigned int i = 0; i < tableSize; ++i)
+        {
+            auto sample = std::sin(currentAngle);
+            samples[i] += (float)sample;                          
+            currentAngle += angleDelta;
+        }
         samples[tableSize] = samples[0];
     }
 
@@ -150,27 +186,43 @@ public:
         samples[tableSize] = samples[0];
     }
 
+    void createBrokenTriangleWaveTable()
+    {
+        brokenTriangleTable.setSize(1, (int)tableSize + 1);
+        brokenTriangleTable.clear();
+
+        auto* samples = brokenTriangleTable.getWritePointer(0);
+
+        unsigned short int tableDivision = tableSize / 4;
+        for (unsigned int i = 0; i < tableDivision; ++i) {
+            float value = i / tableDivision;
+            samples[i] = value;
+        }
+        for (unsigned int i = tableDivision; i < (3 * tableDivision); ++i) {
+            float value = (i -(tableDivision - i)) / tableDivision;
+            samples[i] = value;
+        }
+        for (unsigned int i = (3 * tableDivision); i < (4 * tableDivision); ++i) {
+            float value = (i - (3 * tableDivision)) / tableDivision;
+            samples[i] = value;
+        }
+        samples[tableSize] = samples[0];
+    }
+
     void prepareToPlay(int, double sampleRate) override
     {
-        auto* oscillator1 = new WavetableOscillator(squareTable);
-        auto* oscillator2 = new WavetableOscillator(sineTable);
+        auto* oscillator1 = new WavetableOscillator(brokenTriangleTable);
+        auto* oscillator2 = new WavetableOscillator(squareTable); 
+        auto* oscillator3 = new WavetableOscillator(pureSineTable);
         oscillators.add(oscillator1);
         oscillators.add(oscillator2);
+        oscillators.add(oscillator3);
         level = 0.25f;
     }
 
     void releaseResources() override {}
 
-    WavetableOscillator* getOscillator()
-    {
-        if (sine)
-            return oscillators.getUnchecked(0);
-        else
-            return oscillators.getUnchecked(1);
-    }
-
-
-
+    
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override
     {
         auto* leftBuffer = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
@@ -178,7 +230,7 @@ public:
 
         bufferToFill.clearActiveBufferRegion();
 
-        WavetableOscillator* oscillator = getOscillator();
+        WavetableOscillator* oscillator = oscillators.getUnchecked(osc);
         oscillator->setFrequency(oscFreq, (float)44100);
 
         for (auto sample = 0; sample < bufferToFill.numSamples; ++sample)
@@ -193,13 +245,17 @@ public:
 private:
     juce::Label cpuUsageLabel;
     juce::Label cpuUsageText;
+    juce::Label freqPicker;
+    juce::Label wavePicker;
 
-    const unsigned int tableSize = 1 << 7;
+    const unsigned int tableSize = 1 << 10;
     float level = 0.0f, oscFreq = 50.0;
-    bool sine = false;
+    int osc = 0;
 
     juce::AudioSampleBuffer sineTable;
+    juce::AudioSampleBuffer pureSineTable;
     juce::AudioSampleBuffer squareTable;
+    juce::AudioSampleBuffer brokenTriangleTable;
     juce::OwnedArray<WavetableOscillator> oscillators;
 
     juce::Slider frequencySlider;
