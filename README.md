@@ -1,4 +1,4 @@
-# BasicJUCE
+# BasicJUCE [Basically not relevant anymore, but keep it here incase I forget how to do something]
 
 -Only the actual source files for the most basic audio program. At first commit it was just a volume and frequency control, not using a wavetable.
 
